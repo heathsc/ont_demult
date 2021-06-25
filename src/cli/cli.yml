@@ -1,0 +1,19 @@
+name: ont_demult
+author: Simon Heath <simon.heath@gmail.com>
+about: Takes a paf file (from minimap2) and a list of cut sites and will categorize reads based on the starting points relative to sut sites
+setting: GlobalVersion
+setting: DeriveDisplayOrder
+args:
+   - quiet: {short: q, long: quiet, help: Silence all messages}
+   - timestamp: {short: X, long: time, help: Prepend log entries with a timestamp, takes_value: true, value_name: GRANULARITY, possible_values: [none, sec, ms, us, ns]}
+   - loglevel: {short: v, long: loglevel, takes_value: true, value_name: LOGLEVEL, possible_values: [none, error, warn, info, debug, trace], case_insensitive: true, help: Set log level}
+   - mapq_thresh: {short: Q, long: mapq-thresh, takes_value: true, value_name: INT, help: "Minimum MAPQ threshold" }  
+   - max_distance: {short: m, long: max-distance, takes_value: true, value_name: INT, help: "Maximum distance allowed between cut-site and starting read position" } 
+   - cut_file: {short: f, long: cut-file, takes_value: true, value_name: FILE, help: "Column with pos name (default 2)" }  
+   - fastq: {short: F, value_name: FILE, help: "Input FASTQ file for demultiplexing" }
+   - prefix: {short: p, value_name: PREFIX, takes_value: true, help: "Prefix for output files" }
+   - compress: {short: z, long: compress, help: "Compress output" }
+   - compress_suffix: {short: s, long: compress-suffix, value_name: SUFFIX, takes_value: true, help: "Suffix for compressed files" }
+   - compress_command: {short: c, long: compress-command, value_name: COMMAND, takes_value: true, help: "Compress command" }
+   - paf_file: {value_name: FILE, multiple: false, help: "Input PAF files" }
+ 
