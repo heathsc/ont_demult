@@ -29,18 +29,26 @@ pub const DEFAULT_MAX_DISTANCE: usize = 100;
 // Classification of reads from PAF file
 #[derive(Debug)]
 enum MapResult<'a> {
-	Unmapped,							// Unmapped (normally these are not in the file)
-	LowMapq,								// Low Mapq (no non-unique mapping records)
-	Unmatched,							// No match to a cut site 
-	Matched(Match<'a>)	// Match on strand to a cut site 
+	Unmapped(usize),				// Unmapped (normally these are not in the file)
+	LowMapq(usize),					// Low Mapq (no non-unique mapping records)
+	NoCutSites(usize),				// No cut sites
+	Unmatched(Location),		// No match to a cut site 
+	Matched(Match<'a>),	// Match on strand to a cut site 
+	MatchStart(Location),
+	MatchEnd(Location),
+	MisMatch(Location),
 }
 
 impl <'a>fmt::Display for MapResult<'a> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
-			Self::Unmapped => write!(f, "Unmapped\t*\t*\t*\t*\t*"),
-			Self::LowMapq => write!(f, "LowMapQ\t*\t*\t*\t*\t*"),
-			Self::Unmatched => write!(f, "Unmatched\t*\t*\t*\t*\t*"),
+			Self::Unmapped(x) => write!(f, "Unmapped\t*\t*\t*\t*\t*\t{}", x),
+			Self::LowMapq(x) => write!(f, "LowMapQ\t*\t*\t*\t*\t*\t{}", x),
+			Self::NoCutSites(x) => write!(f, "NoCutSites\t*\t*\t*\t*\t*\t{}", x),
+			Self::Unmatched(l) => write!(f, "Unmatched\t{}", l),
+			Self::MatchStart(l) => write!(f, "MatchStart\t{}", l),
+			Self::MatchEnd(l) => write!(f, "MatchEnd\t{}", l),
+			Self::MisMatch(l) => write!(f, "MisMatch\t{}", l),
 			Self::Matched(m) => write!(f, "Matched\t{}", m),
 		}
 	}
@@ -68,11 +76,18 @@ fn main() -> Result<(), String> {
 		let map_result = if read.is_mapped() {
 			if read.is_unique(param.mapq_thresh()) {
 				if let Some(cut_sites) = param.cut_sites() {
-					if let Some(site) = read.find_site(cut_sites, param.mapq_thresh(), param.max_distance()) { MapResult::Matched(site) }
-					else { MapResult::Unmatched}
-				} else { MapResult::Unmatched }
-			} else { MapResult::LowMapq}
-		} else { MapResult::Unmapped };
+					if let Some(fm) = read.find_site(cut_sites, param.mapq_thresh(), param.max_distance(), param.select()) {
+						match fm {
+							FindMatch::Match(m) => MapResult::Matched(m), 	
+							FindMatch::Location(l) => MapResult::Unmatched(l), 	
+							FindMatch::MisMatch(l) => MapResult::MisMatch(l), 	
+							FindMatch::MatchStart(l) => MapResult::MatchStart(l), 	
+							FindMatch::MatchEnd(l) => MapResult::MatchEnd(l), 	
+						}
+					} else { MapResult::LowMapq(read.qlen)}
+				} else { MapResult::NoCutSites(read.qlen) }
+			} else { MapResult::LowMapq(read.qlen)}
+		} else { MapResult::Unmapped(read.qlen) };
 		writeln!(output, "{}\t{}", read.qname(), map_result).map_err(|e| format!("Error writing to output file {}", e))?;
 		if let Some(rh) = read_hash.as_mut() { rh.insert(read.qname().to_owned(), map_result); }
 	}
@@ -91,11 +106,11 @@ fn main() -> Result<(), String> {
 		// Process FastQ reads
 		let rh = read_hash.as_ref().unwrap();
 		while fq_file.next_read().map_err(|e| format!("Error reading from fastq file: {}", e))? {
-			let wrt = match rh.get(fq_file.read_id()).unwrap_or(&MapResult::Unmapped) {
-				MapResult::Unmapped => &mut ofiles.unmapped,
-				MapResult::LowMapq => &mut ofiles.low_mapq,
-				MapResult::Unmatched => &mut ofiles.unmatched,
+			let wrt = match rh.get(fq_file.read_id()).unwrap_or(&MapResult::Unmapped(0)) {
+				MapResult::Unmapped(_) => &mut ofiles.unmapped,
+				MapResult::LowMapq(_) => &mut ofiles.low_mapq,
 				MapResult::Matched(m) => ofiles.bc_hash.get_mut(m.site.barcode.as_str()).expect("Unknown barcode"),
+				_ => &mut ofiles.unmatched,
 			};
 			fq_file.write_rec(wrt).map_err(|e| format!("Error writing to fastq output: {}", e))?;
 		}		

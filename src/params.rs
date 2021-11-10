@@ -1,13 +1,31 @@
 use super::*;
 use crate::cut_site::CutSites;
 
+#[derive(Copy, Clone, PartialEq, Eq)]
+pub enum Select {
+	Start, Both, Either,
+}
+
+impl Select {
+	fn from_str(s: &str) -> Option<Self> {
+		let s = s.to_ascii_lowercase();
+		match s.as_str() {
+			"start" => Some(Self::Start),
+			"both" => Some(Self::Both),
+			"either" => Some(Self::Either),
+			_ => None,
+		}
+	}	
+}
+
 // Parameters for run
 pub struct Param {
 	paf_file: Option<String>,								// Input PAF file (if None, use stdin)
 	fastq_file: Option<String>,							// Input FASTQ file (if None, just produce report)
-	cut_sites: Option<CutSites>,	// Contigs with cut site definitions (if None, only split based on uniquely mapped/not uniquely mapped)
+	cut_sites: Option<CutSites>,							// Contigs with cut site definitions (if None, only split based on uniquely mapped/not uniquely mapped)
 	prefix: String,											// Ouput prefix (if None, use)
 	compress: bool,											// Compress output
+	select: Select,											// Selection strategy
 	compress_suffix: Option<String>,						// Suffix for compressed files (implies --compress)
 	compress_command: Option<String>,					// Command (with arguments) for compression (implies --compress)
 	mapq_thresh: usize,										// Minimum threshold for MAPQ
@@ -23,6 +41,7 @@ impl Param {
 			cut_sites: None,
 			prefix,
 			compress: false,
+			select: Select::Start,
 			compress_suffix: None,
 			compress_command: None,
 			mapq_thresh: DEFAULT_MAPQ_THRESHOLD,
@@ -41,6 +60,12 @@ impl Param {
 	pub fn fastq_file(&self) -> Option<&str> { self.fastq_file.as_deref() }
 	pub fn set_cut_sites(&mut self, csites: CutSites) {
 		self.cut_sites = Some(csites)
+	}
+	pub fn select(&self) -> Select { self.select }
+	pub fn set_select(&mut self, s: &str) { 
+		if let Some(sel) = Select::from_str(s) {
+			self.select = sel
+		}
 	}
 	pub fn cut_sites(&self) -> Option<&CutSites> { self.cut_sites.as_ref() }
 	pub fn prefix(&self) -> &str { &self.prefix }

@@ -13,7 +13,7 @@ pub struct Contig {
 }
 
 // Cut site definition
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Site {
 	pub name: String,		// Identifier for cut site
 	pub pos: usize,		// Contig position (1 offset)
