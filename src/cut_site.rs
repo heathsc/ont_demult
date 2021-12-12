@@ -27,7 +27,7 @@ pub struct CutSites {
 
 impl CutSites {
 	// Returns cut site closest to position if the distance is <= max_dist, l is the contig length 
-	pub fn find_site<S: AsRef<str>>(&self, contig: S, pos: usize, max_dist: usize, l: usize) -> Option<&Site> {
+	pub fn find_site<S: AsRef<str>>(&self, contig: S, pos: usize, dir: bool, max_dist: usize, l: usize) -> Option<&Site> {
 		debug!("Checking for cut site near {}:{}", contig.as_ref(), pos);
 		if let Some(ctg) = self.chash.get(contig.as_ref()) {	// Is there a cut site on the contig? 
 			// The cut sites are ordered by position for each contig so we can use a binary search
@@ -49,27 +49,31 @@ impl CutSites {
 						// pos lies between 2 cut sites
 						(Some((i, x)), Some((j, y))) => {
 							trace!("Possible match between {:?} ({}bp) and {:?} ({}bp)", ctg.cut_sites[i], x, ctg.cut_sites[j], y); 
-							if x < y { d1 } else { d2 }
+							if dir { d1 } else { d2 }
 						},
 						// pos lies after last cut site
 						(Some((i, x)), None) => {
 							if ctg.circular.unwrap_or(false) {
 								// Check distance to first site on contig
 								let x0 = ctg.cut_sites[0].pos;
-								let y = if x0 >= pos - l { x0 + l - pos } else { pos - l - x0}; 
-								trace!("Possible match between {:?} ({}bp) and {:?} ({}bp)", ctg.cut_sites[i], x, ctg.cut_sites[0], y); 
-								if x < y { d1 } else { Some((0, y)) }
-							} else { d1 }
+								let y = if l + x0 >= pos { x0 + l - pos } else { pos - l - x0};
+								trace!("Possible match between {:?} ({}bp) and {:?} ({}bp)", ctg.cut_sites[i], x, ctg.cut_sites[0], y);
+								if dir { d1 } else { Some((0, y)) }
+							} else {
+								if dir { d1 } else { Some((0, max_dist + 1))}
+							}
 						},
 						// pos lies before first cut site
 						(None, Some((0, y))) => {
 							if ctg.circular.unwrap_or(false) {
 								// Check distance to last site on contig
 								let xn = ctg.cut_sites.last().unwrap().pos;
-								let x = if pos >= xn - l { pos + l - xn } else { xn - l - pos};
-								trace!("Possible match between {:?} ({}bp) and {:?} ({}bp)", ctg.cut_sites[ctg.cut_sites.len() - 1], x, ctg.cut_sites[0], y); 
-								if x < y { Some((ctg.cut_sites.len() - 1, x))} else { d2 }
-							} else { d2 }
+								let x = if l + pos >= xn { l + pos - xn } else { xn - l - pos};
+								trace!("Possible match between {:?} ({}bp) and {:?} ({}bp)", ctg.cut_sites[ctg.cut_sites.len() - 1], x, ctg.cut_sites[0], y);
+								if dir { Some((ctg.cut_sites.len() - 1, x))} else { d2 }
+							} else {
+								if dir { Some((ctg.cut_sites.len() - 1, max_dist + 1))} else { d2 }
+							}
 						},
 						// This shouldn't happen
 						_ => panic!("Unexpected case!"),

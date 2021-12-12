@@ -23,15 +23,17 @@ pub fn process_cli() -> io::Result<Param> {
 	if let Some(suffix) = m.value_of("compress_suffix") { params.set_compress_suffix(suffix) }
 	if let Some(command) = m.value_of("compress_command") { params.set_compress_command(command) }
 	if let Some(sel) = m.value_of("select") { params.set_select(sel) }
-	
+
 	if m.is_present("compress") { params.set_compress() }
-	if params.compress() && params.compress_command().is_none() { 
+	if m.is_present("matched_only") { params.set_matched_only() }
+	if params.compress() && params.compress_command().is_none() {
 		if params.compress_suffix().is_none() { params.set_compress_suffix("gz") }
 		params.set_compress_command("gzip");
 	}
 	if let Ok(x) = value_t!(m, "maxq_thresh", usize) { params.set_mapq_thresh(x); }
 	if let Ok(x) = value_t!(m, "max_distance", usize) { params.set_max_distance(x) }
-	
+	if let Ok(x) = value_t!(m, "margin", usize) { params.set_max_distance(x) }
+
 	// Process cut file if present
 	if let Some(file) = m.value_of("cut_file") {
 		params.set_cut_sites(read_cut_file(file)?)

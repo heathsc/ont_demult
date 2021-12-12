@@ -3,7 +3,7 @@ use crate::cut_site::CutSites;
 
 #[derive(Copy, Clone, PartialEq, Eq)]
 pub enum Select {
-	Start, Both, Either,
+	Start, Both, Either, Xor,
 }
 
 impl Select {
@@ -13,6 +13,7 @@ impl Select {
 			"start" => Some(Self::Start),
 			"both" => Some(Self::Both),
 			"either" => Some(Self::Either),
+			"xor" => Some(Self::Xor),
 			_ => None,
 		}
 	}	
@@ -20,16 +21,18 @@ impl Select {
 
 // Parameters for run
 pub struct Param {
-	paf_file: Option<String>,								// Input PAF file (if None, use stdin)
-	fastq_file: Option<String>,							// Input FASTQ file (if None, just produce report)
-	cut_sites: Option<CutSites>,							// Contigs with cut site definitions (if None, only split based on uniquely mapped/not uniquely mapped)
-	prefix: String,											// Ouput prefix (if None, use)
-	compress: bool,											// Compress output
-	select: Select,											// Selection strategy
-	compress_suffix: Option<String>,						// Suffix for compressed files (implies --compress)
-	compress_command: Option<String>,					// Command (with arguments) for compression (implies --compress)
-	mapq_thresh: usize,										// Minimum threshold for MAPQ
-	max_distance: usize,										// Maximum distance allowed from nearest cutsite
+	paf_file: Option<String>,		    // Input PAF file (if None, use stdin)
+	fastq_file: Option<String>,		    // Input FASTQ file (if None, just produce report)
+	cut_sites: Option<CutSites>,	    // Contigs with cut site definitions (if None, only split based on uniquely mapped/not uniquely mapped)
+	prefix: String,					    // Ouput prefix (if None, use)
+	compress: bool,					    // Compress output
+	matched_only: bool,                 // Only output matched fastq records when demultiplexing
+	select: Select,					    // Selection strategy
+	compress_suffix: Option<String>,    // Suffix for compressed files (implies --compress)
+	compress_command: Option<String>,	// Command (with arguments) for compression (implies --compress)
+	mapq_thresh: usize,					// Minimum threshold for MAPQ
+	max_distance: usize,				// Maximum distance allowed from nearest cut site
+	margin: usize,                      // Extra margin allowed when matching on 'wrong side' of cut site
 }
 
 impl Param {
@@ -41,11 +44,13 @@ impl Param {
 			cut_sites: None,
 			prefix,
 			compress: false,
+			matched_only: false,
 			select: Select::Start,
 			compress_suffix: None,
 			compress_command: None,
 			mapq_thresh: DEFAULT_MAPQ_THRESHOLD,
 			max_distance: DEFAULT_MAX_DISTANCE,
+			margin: DEFAULT_MARGIN,
 		}
 	}
 	
@@ -71,6 +76,8 @@ impl Param {
 	pub fn prefix(&self) -> &str { &self.prefix }
 	pub fn set_compress(&mut self) { self.compress = true }
 	pub fn compress(&self) -> bool { self.compress }
+	pub fn set_matched_only(&mut self) { self.matched_only = true }
+	pub fn matched_only(&self) -> bool { self.matched_only }
 	pub fn set_compress_suffix<S: AsRef<str>>(&mut self, com: S) {
 		self.compress_suffix = Some(com.as_ref().to_owned());
 		self.set_compress();
@@ -84,5 +91,7 @@ impl Param {
 	pub fn set_mapq_thresh(&mut self, m: usize) { self.mapq_thresh = m }
 	pub fn mapq_thresh(&self) -> usize { self.mapq_thresh }
 	pub fn set_max_distance(&mut self, d: usize) { self.max_distance = d }
-	pub fn max_distance(&self) -> usize { self.max_distance }	
+	pub fn max_distance(&self) -> usize { self.max_distance }
+	pub fn set_margin(&mut self, d: usize) { self.margin = d }
+	pub fn margin(&self) -> usize { self.margin }
 }

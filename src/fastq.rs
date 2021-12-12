@@ -58,7 +58,9 @@ impl FastqFile {
 			_ => tag,
 		}
 	}
-	
+
+	pub fn read_len(&self) -> usize { self.buf[1].trim().len() }
+
 	pub fn write_rec(&self, wrt: &mut Box<dyn Write>) -> io::Result<()> {
 		write!(wrt, "{}{}+\n{}", self.buf[0], self.buf[1], self.buf[2])
 	}

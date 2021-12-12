@@ -8,7 +8,7 @@ use std::fmt;
 
 use crate::utils::get_reader;
 use crate::cut_site::{Site, CutSites};
-use crate::params::Select;
+use crate::params::{Param, Select};
 
 fn parse_usize(s: &str, msg: &str) -> io::Result<usize> {	
 	s.parse::<usize>().map_err(|e| Error::new(ErrorKind::Other, format!("Parse error for {}: {}", msg, e)))
@@ -40,14 +40,14 @@ impl fmt::Display for Strand {
 pub struct Match<'a> {
 	pub site: &'a Site,
 	strand: Strand,
-	start: usize,
-	end: usize,
+	start: [usize; 2],
+	end: [usize; 2],
 	length: usize,
 }
 
 impl <'a>fmt::Display for Match<'a> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}\t{}\t{}\t{}\t{}\t{}", self.site.name, self.site.barcode, self.strand, self.start, self.end, self.length)
+		write!(f, "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{}", self.site.name, self.site.barcode, self.strand, self.start[0], self.end[0], self.start[1], self.end[1], self.length)
 	}
 }
 
@@ -55,14 +55,14 @@ impl <'a>fmt::Display for Match<'a> {
 pub struct Location {
 	contig: Rc<str>,
 	strand: Strand,
-	start: usize,
-	end: usize,
+	start: [usize; 2],
+	end: [usize; 2],
 	length: usize,
 }
 
 impl fmt::Display for Location {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}\t*\t{}\t{}\t{}\t{}", self.contig, self.strand, self.start, self.end, self.length)
+		write!(f, "{}\t*\t{}\t{}\t{}\t{}\t{}\t{}", self.contig, self.strand, self.start[0], self.end[0], self.start[1], self.end[1], self.length)
 	}
 }
 
@@ -71,6 +71,7 @@ pub enum FindMatch<'a> {
 	Match(Match<'a>),
 	MisMatch(Location),
 	MatchStart(Location),
+	MatchBoth(Location),
 	MatchEnd(Location),
 	Location(Location),
 }
@@ -79,7 +80,7 @@ impl <'a>fmt::Display for FindMatch<'a> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		match self {
 			Self::Match(m) => write!(f, "{}", m),
-			Self::Location(l) | Self::MisMatch(l) | Self::MatchStart(l) | Self::MatchEnd(l)  => write!(f, "{}", l),
+			Self::Location(l) | Self::MatchBoth(l) | Self::MisMatch(l) | Self::MatchStart(l) | Self::MatchEnd(l)  => write!(f, "{}", l),
 		}
 	}
 }
@@ -161,52 +162,69 @@ impl PafRead {
 	// Strategy - look for mapping records that can be assembled to cover more or less
 	// the whole read where at least 1 record has a mapq > threshold and the others are on
 	// the same contig strand
-	pub fn find_site<'a, 'b>(&'a self, cut_sites: &'b CutSites, threshold: usize, max_dist: usize, select: Select) -> Option<FindMatch<'b>> {
+	pub fn find_site<'a, 'b>(&'a self, cut_sites: &'b CutSites, param :&Param) -> Option<FindMatch<'b>> {
 		debug!("Checking matches for read {}", self.qname);
+		let threshold = param.mapq_thresh();
+		let max_dist = param.max_distance();
+		let select = param.select();
+		let margin = param.margin();
+
 		// Find longest uniquely mapping record, filtering out reads much longer than the reference
 		self.records.iter().filter(|r| r.mapq >= threshold && self.qlen < r.target_length + 150).max_by_key(|r| r.matching_bases).map(|r| {
 			trace!("Found longest match: query: {} {} {} {} target: {} {} {}", 
 				self.qlen, r.qstart, r.qend, r.strand, r.target_name, r.target_start, r.target_end);
+
+			let strand = r.strand;
+
 			// Select other records on same contig strand as longest match with mapq > 0
 			let recs: Vec<_> = self.records.iter().filter(|s| s.target_name == r.target_name && s.strand == r.strand && s.mapq > 0).collect();
 			
 			// Find record that starts earliest in the read
 			let s = recs.iter().min_by_key(|s| s.qstart).unwrap();
 			trace!("First record in read - query: {} {} {} {} target: {} {}", self.qlen, s.qstart, s.qend, s.strand, s.target_start, s.target_end);
-			// Infer true starting position by adjusting for unmatched bases
-			let spos = match s.strand {
-				Strand::Plus => if s.qstart <= s.target_start { s.target_start - s.qstart } else { 0 },
-				Strand::Minus => s.target_end + s.qstart,
+
+			// Increase starting position by margin to allow for 'overrun'
+			let (start, spos) = match s.strand {
+				Strand::Plus => (s.target_start, s.target_start + margin),
+				Strand::Minus => (s.target_end, if margin <= s.target_end { s.target_end - margin } else { 0 }),
 			};
 			trace!("Using starting position {}", spos);
 			
 			// Find record that ends latest in read
 			let s1 = recs.iter().max_by_key(|s| s.qend).unwrap();
-			
-			// Infer true ending position by adjusting for unmatched bases
-			let unmatched = self.qlen - s1.qend;
-			let send = match s1.strand {
-				Strand::Minus => if unmatched <= s1.target_start { s1.target_start - unmatched } else { 0 },
-				Strand::Plus => s1.target_end + unmatched,
+
+			// Increase starting position and reduce ending position by margin to allow for 'overrun'
+
+			let (end, send) = match s1.strand {
+				Strand::Plus => (s1.target_end, if margin <= s1.target_end { s1.target_end - margin } else { 0 }),
+				Strand::Minus => (s1.target_start, s1.target_start + margin),
 			};
-			
+
 			trace!("Using ending position {}", send);
 			// Look for matching cut site
-			let start_site = cut_sites.find_site(s.target_name.as_ref(), spos, max_dist, s.target_length);
-			let end_site = cut_sites.find_site(s.target_name.as_ref(), send, max_dist, s.target_length);
+			let start_site = cut_sites.find_site(s.target_name.as_ref(), spos, strand == Strand::Plus, max_dist, s.target_length);
+			let end_site = cut_sites.find_site(s.target_name.as_ref(), send, strand == Strand::Minus, max_dist, s.target_length);
 			trace!("start_site: {:?}, end_site: {:?}", start_site, end_site);
 			
 			match (start_site, end_site, select) {
-				(Some(m1), Some(m2), _) => if m1 == m2 {
-					FindMatch::Match(Match{site: m1, strand: s.strand, start: spos, end: send, length: self.qlen})
+				(Some(m1), Some(m2), sel) => if m1 == m2 {
+					if sel == Select::Xor {
+						FindMatch::MatchBoth(Location{contig: s.target_name.clone(), strand: s.strand, start: [start, spos], end: [end, send], length: self.qlen})
+					} else {
+						FindMatch::Match(Match { site: m1, strand: s.strand, start: [start, spos], end: [end, send], length: self.qlen })
+					}
 				} else {
-					FindMatch::MisMatch(Location{contig: s.target_name.clone(), strand: s.strand, start: spos, end: send, length: self.qlen})
+					if sel == Select::Both {
+						FindMatch::MisMatch(Location { contig: s.target_name.clone(), strand: s.strand, start: [start, spos], end: [end, send], length: self.qlen })
+					} else {
+						FindMatch::Match(Match { site: m1, strand: s.strand, start: [start, spos], end: [end, send], length: self.qlen })
+					}
 				},
-				(Some(_), None, Select::Both) => FindMatch::MatchStart(Location{contig: s.target_name.clone(), strand: s.strand, start: spos, end: send, length: self.qlen}),
-				(Some(m), None, _) => FindMatch::Match(Match{site: m, strand: s.strand, start: spos, end: send, length: self.qlen}),
-				(None, Some(m), Select::Either) => FindMatch::Match(Match{site: m, strand: s.strand, start: spos, end: send, length: self.qlen}),
-				(None, Some(_), _) => FindMatch::MatchEnd(Location{contig: s.target_name.clone(), strand: s.strand, start: spos, end: send, length: self.qlen}),
-				(None, None, _) => FindMatch::Location(Location{contig: s.target_name.clone(), strand: s.strand, start: spos, end: send, length: self.qlen}),
+				(Some(_), None, Select::Both) => FindMatch::MatchStart(Location{contig: s.target_name.clone(), strand: s.strand, start: [start, spos], end: [end, send], length: self.qlen}),
+				(Some(m), None, _) => FindMatch::Match(Match{site: m, strand: s.strand, start: [start, spos], end: [end, send], length: self.qlen}),
+				(None, Some(m), Select::Either) => FindMatch::Match(Match{site: m, strand: s.strand, start: [start, spos], end: [end, send], length: self.qlen}),
+				(None, Some(_), _) => FindMatch::MatchEnd(Location{contig: s.target_name.clone(), strand: s.strand, start: [start, spos], end: [end, send], length: self.qlen}),
+				(None, None, _) => FindMatch::Location(Location{contig: s.target_name.clone(), strand: s.strand, start: [start, spos], end: [end, send], length: self.qlen}),
 			}
 		})
 	}

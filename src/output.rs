@@ -21,17 +21,19 @@ pub fn open_output_file<S: AsRef<str>>(name: S, param: &Param) -> io::Result<Box
 } 
 
 pub struct OutputFiles<'a> {
-	pub unmapped: Box<dyn Write>,	
-	pub low_mapq: Box<dyn Write>,	
-	pub unmatched: Box<dyn Write>,	
+	pub unmapped: Option<Box<dyn Write>>,
+	pub low_mapq: Option<Box<dyn Write>>,
+	pub unmatched: Option<Box<dyn Write>>,
 	pub bc_hash: HashMap<&'a str, Box<dyn Write>>, 
 }
 
 impl <'a>OutputFiles<'a> {
 	pub fn open(param: &'a Param) -> io::Result<OutputFiles<'a>> {
-		let unmapped = open_output_file("unmapped.fastq", param)?;
-		let low_mapq = open_output_file("low_mapq.fastq", param)?;
-		let unmatched = open_output_file("unmatched.fastq", param)?;
+		let (unmapped, low_mapq, unmatched) = if !param.matched_only() {
+			(Some(open_output_file("unmapped.fastq", param)?),
+			Some(open_output_file("low_mapq.fastq", param)?),
+			Some(open_output_file("unmatched.fastq", param)?))
+		} else { (None, None, None) };
 		let mut bc_hash = HashMap::new();
 		if let Some(cut_sites) = param.cut_sites() {
 			for (_, csites) in cut_sites.chash.iter() {
