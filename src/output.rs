@@ -9,7 +9,7 @@ pub fn open_output_file<S: AsRef<str>>(name: S, param: &Param) -> io::Result<Box
 	let fname = if let Some(suffix) = param.compress_suffix() {
 		format!("{}_{}.{}", param.prefix(), name.as_ref(), suffix)
 	} else { format!("{}_{}", param.prefix(), name.as_ref()) };
-	
+
 	if let Some(command) = param.compress_command() {
 		let fd: Vec<_> = command.split_ascii_whitespace().collect();
 		match fd.len() {
