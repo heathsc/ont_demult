@@ -33,6 +33,7 @@ pub fn process_cli() -> io::Result<Param> {
 	if let Ok(x) = value_t!(m, "maxq_thresh", usize) { params.set_mapq_thresh(x); }
 	if let Ok(x) = value_t!(m, "max_distance", usize) { params.set_max_distance(x) }
 	if let Ok(x) = value_t!(m, "margin", usize) { params.set_max_distance(x) }
+	if let Ok(x) = value_t!(m, "max_unmatched", f64) { params.set_max_unmatched(x) }
 
 	// Process cut file if present
 	if let Some(file) = m.value_of("cut_file") {

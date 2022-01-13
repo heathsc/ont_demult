@@ -24,7 +24,7 @@ pub struct OutputFiles<'a> {
 	pub unmapped: Option<Box<dyn Write>>,
 	pub low_mapq: Option<Box<dyn Write>>,
 	pub unmatched: Option<Box<dyn Write>>,
-	pub bc_hash: HashMap<&'a str, Box<dyn Write>>, 
+	pub site_hash: HashMap<&'a str, Box<dyn Write>>,
 }
 
 impl <'a>OutputFiles<'a> {
@@ -34,18 +34,18 @@ impl <'a>OutputFiles<'a> {
 			Some(open_output_file("low_mapq.fastq", param)?),
 			Some(open_output_file("unmatched.fastq", param)?))
 		} else { (None, None, None) };
-		let mut bc_hash = HashMap::new();
+		let mut site_hash = HashMap::new();
 		if let Some(cut_sites) = param.cut_sites() {
 			for (_, csites) in cut_sites.chash.iter() {
 				for site in csites.cut_sites.iter() {
-					if !bc_hash.contains_key(site.barcode.as_str()) {
-						let wrt = open_output_file(format!("{}.fastq", site.barcode), param)?;
-						bc_hash.insert(site.barcode.as_str(), wrt);
+					if !site_hash.contains_key(site.name.as_str()) {
+						let wrt = open_output_file(format!("{}.fastq", site.name), param)?;
+						site_hash.insert(site.name.as_str(), wrt);
 					}
 				}
 			}	
 		}
-		Ok(Self { unmapped, low_mapq, unmatched, bc_hash })
+		Ok(Self { unmapped, low_mapq, unmatched, site_hash })
 	}
 }
 

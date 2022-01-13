@@ -26,6 +26,7 @@ pub const DEFAULT_PREFIX: &str = "ont_demult";
 pub const DEFAULT_MAPQ_THRESHOLD: usize = 10;
 pub const DEFAULT_MAX_DISTANCE: usize = 100;
 pub const DEFAULT_MARGIN: usize = 5;
+pub const DEFAULT_MAX_UNMATCHED: f64 = 0.01;
 
 // Classification of reads from PAF file
 #[derive(Debug)]
@@ -34,7 +35,8 @@ enum MapResult<'a> {
 	LowMapq(usize),					// Low Mapq (no non-unique mapping records)
 	NoCutSites(usize),				// No cut sites
 	Unmatched(Location),		// No match to a cut site 
-	Matched(Match<'a>),	// Match on strand to a cut site 
+	Matched(Match<'a>),	  // Match on strand to a cut site
+	ExcessUnmatched(Match<'a>),
 	MatchBoth(Location),
 	MatchStart(Location),
 	MatchEnd(Location),
@@ -53,6 +55,7 @@ impl <'a>fmt::Display for MapResult<'a> {
 			Self::MatchEnd(l) => write!(f, "MatchEnd\t{}", l),
 			Self::MisMatch(l) => write!(f, "MisMatch\t{}", l),
 			Self::Matched(m) => write!(f, "Matched\t{}", m),
+			Self::ExcessUnmatched(m) => write!(f, "ExcessUnmatched\t{}", m),
 		}
 	}
 }
@@ -81,8 +84,9 @@ fn main() -> Result<(), String> {
 				if let Some(cut_sites) = param.cut_sites() {
 					if let Some(fm) = read.find_site(cut_sites, &param) {
 						match fm {
-							FindMatch::Match(m) => MapResult::Matched(m), 	
-							FindMatch::Location(l) => MapResult::Unmatched(l), 	
+							FindMatch::Match(m) => MapResult::Matched(m),
+							FindMatch::ExcessUnmatched(m) => MapResult::ExcessUnmatched(m),
+							FindMatch::Location(l) => MapResult::Unmatched(l),
 							FindMatch::MisMatch(l) => MapResult::MisMatch(l),
 							FindMatch::MatchStart(l) => MapResult::MatchStart(l),
 							FindMatch::MatchBoth(l) => MapResult::MatchBoth(l),
@@ -118,7 +122,7 @@ fn main() -> Result<(), String> {
 			if let Some(wrt) = match mr {
 				MapResult::Unmapped(_) => ofiles.unmapped.as_mut(),
 				MapResult::LowMapq(_) => ofiles.low_mapq.as_mut(),
-				MapResult::Matched(m) => ofiles.bc_hash.get_mut(m.site.barcode.as_str()),
+				MapResult::Matched(m) => ofiles.site_hash.get_mut(m.site.name.as_str()),
 				_ => ofiles.unmatched.as_mut(),
 			} {
 				fq_file.write_rec(wrt).map_err(|e| format!("Error writing to fastq output: {}", e))?

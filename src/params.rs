@@ -32,6 +32,7 @@ pub struct Param {
 	compress_command: Option<String>,	// Command (with arguments) for compression (implies --compress)
 	mapq_thresh: usize,					// Minimum threshold for MAPQ
 	max_distance: usize,				// Maximum distance allowed from nearest cut site
+	max_unmatched: f64,                 // Maximum proportion of unmatched bases allowed per read
 	margin: usize,                      // Extra margin allowed when matching on 'wrong side' of cut site
 }
 
@@ -50,6 +51,7 @@ impl Param {
 			compress_command: None,
 			mapq_thresh: DEFAULT_MAPQ_THRESHOLD,
 			max_distance: DEFAULT_MAX_DISTANCE,
+			max_unmatched: DEFAULT_MAX_UNMATCHED,
 			margin: DEFAULT_MARGIN,
 		}
 	}
@@ -94,4 +96,6 @@ impl Param {
 	pub fn max_distance(&self) -> usize { self.max_distance }
 	pub fn set_margin(&mut self, d: usize) { self.margin = d }
 	pub fn margin(&self) -> usize { self.margin }
+	pub fn set_max_unmatched(&mut self, p: f64) { self.max_unmatched = p }
+	pub fn max_unmatched(&self) -> f64 { self.max_unmatched }
 }

@@ -9,6 +9,7 @@ args:
    - loglevel: {short: l, long: loglevel, takes_value: true, value_name: LOGLEVEL, possible_values: [none, error, warn, info, debug, trace], case_insensitive: true, help: Set log level}
    - mapq_thresh: {short: Q, long: mapq-thresh, takes_value: true, value_name: INT, help: "Minimum MAPQ threshold" }  
    - max_distance: {short: m, long: max-distance, takes_value: true, value_name: INT, help: "Maximum distance allowed between cut-site and starting read position" }
+   - max_unmatched: {short: u, long: max-unmatched, takes_value: true, value_name: PROPORTION, help: "Maximum proportion of unmatched bases allowed in a read" }
    - margin: {long: margin, takes_value: true, value_name: INT, help: "Extra distance at start of reads" }
    - select: { short: S, long: select, takes_value: true, value_name: STRATEGY, help: "Strategy for selection of reads (default: start)", possible_values: [start, both, either, xor], case_insensitive: true}
    - cut_file: {short: f, long: cut-file, takes_value: true, value_name: FILE, help: "File with details of cut sites" }  
