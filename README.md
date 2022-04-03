@@ -11,7 +11,7 @@ Utility to demultiplex ONT reads using mapping to Cas9 cut sites to split the re
       - [Both](#Both)
       - [Either](#Either)
       - [Xor](#Xor)
-    - [Output files](#Output files) 
+    - [Output files](#Output-files) 
 - [Changes](#Changes)
 
 ## Introduction
@@ -157,3 +157,6 @@ The output files produced by ont_demult are a results file with the results of t
 read found in the input PAF file, and the demultiplexed FASTQ files if an input FASTQ file was supplied.
 
 ## Changes
+
+0.3.0 - Moved to Clap v3.
+0.3.0 - Added documentation in this file.
