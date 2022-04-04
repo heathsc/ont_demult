@@ -44,9 +44,9 @@ enum MapResult<'a> {
 impl<'a> fmt::Display for MapResult<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Unmapped(x) => write!(f, "Unmapped\t*\t*\t*\t*\t*\t*\t*\t{}", x),
-            Self::LowMapq(x) => write!(f, "LowMapQ\t*\t*\t*\t*\t*\t*\t*\t{}", x),
-            Self::NoCutSites(x) => write!(f, "NoCutSites\t*\t*\t*\t*\t*\t*\t*\t{}", x),
+            Self::Unmapped(x) => write!(f, "Unmapped\t*\t*\t*\t*\t*\t{}\t*\t*", x),
+            Self::LowMapq(x) => write!(f, "LowMapQ\t*\t*\t*\t*\t*\t{}\t*\t*", x),
+            Self::NoCutSites(x) => write!(f, "NoCutSites\t*\t*\t*\t*\t*\t{}\t*\t*", x),
             Self::Unmatched(l) => write!(f, "Unmatched\t{}", l),
             Self::MatchBoth(l) => write!(f, "MatchBoth\t{}", l),
             Self::MatchStart(l) => write!(f, "MatchStart\t{}", l),
@@ -79,10 +79,7 @@ fn main() -> anyhow::Result<()> {
     debug!("Opening main output");
     let mut output = open_output_file("res.txt", &param)
         .with_context(|| "Error opening output file")?;
-    writeln!(
-        output,
-        "read_name\tmatch_status\tcut_site\tbarcode\tstrand\tstart\tlength"
-    )
+    writeln!(output, "read_name\tmatch_status\tcut_site/contig\tbarcode\tstrand\tstart\tend\tlength\tunused\tprop. unused\tsplits")
     .with_context(|| "Error writing to output file")?;
 
     // Process PAF reads

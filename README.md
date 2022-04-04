@@ -154,9 +154,15 @@ reads *not* selected by **both**.
 ### Output files
 
 The output files produced by ont_demult are a results file with the results of the matching for each
-read found in the input PAF file, and the demultiplexed FASTQ files if an input FASTQ file was supplied.
+read found in the input PAF file, and the demultiplexed FASTQ files if an 
+input FASTQ file was supplied.
+
+The name of the results file is formed from the output prefix (set with the ``--prefix`` option),
+and the ending ``_res.txt`` (with a ``.gz`` suffix if the ``--compress`` option is set).
 
 ## Changes
 
+0.3.1 - Correct headers in results file.  Clean up output.
+0.3.1 - Fix compress option which was not being read correctly.
 0.3.0 - Moved to Clap v3.
 0.3.0 - Added documentation in this file.

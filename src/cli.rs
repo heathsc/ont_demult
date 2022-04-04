@@ -114,7 +114,7 @@ pub fn process_cli() -> anyhow::Result<Param> {
     }
 
     pb.prefix(m.value_of("prefix").unwrap())
-       .compress(m.is_present("compress)"))
+       .compress(m.is_present("compress"))
        .matched_only(m.is_present("matched_only"))
        .mapq_thresh(m.value_of_t("mapq_threshold").with_context(|| "Invalid argument to mapq_threshold option")?)
        .max_distance(m.value_of_t("max_distance").with_context(|| "Invalid argument to map_distance option")?)

@@ -98,12 +98,10 @@ impl fmt::Display for CommonLoc {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{}\t{}\t{}\t{}\t{}\t{}\t{}\t{:.4}",
+            "{}\t{}\t{}\t{}\t{}\t{:.4}",
             self.strand,
             self.start[0],
             self.end[0],
-            self.start[1],
-            self.end[1],
             self.length,
             self.unused,
             (self.unused as f64) / (self.length as f64)
@@ -257,11 +255,7 @@ impl PafRead {
     // Strategy - look for mapping records that can be assembled to cover more or less
     // the whole read where at least 1 record has a mapq > threshold and the others are on
     // the same contig strand
-    pub fn find_site<'a, 'b>(
-        &'a self,
-        cut_sites: &'b CutSites,
-        param: &Param,
-    ) -> Option<FindMatch<'b>> {
+    pub fn find_site<'a, 'b>(&'a self, cut_sites: &'b CutSites, param: &Param) -> Option<FindMatch<'b>> {
         debug!("Checking matches for read {}", self.qname);
         let threshold = param.mapq_thresh();
         let max_dist = param.max_distance();
@@ -466,12 +460,8 @@ pub struct PafFile {
 
 impl PafFile {
     pub fn open<P: AsRef<Path>>(name: Option<P>) -> io::Result<Self> {
-        let mut c = CompressIo::new();
-        if let Some(f) = name {
-            c.path(f);
-        }
         Ok(Self {
-            rdr: c.bufreader().map(Box::new)?,
+            rdr: CompressIo::new().opt_path(name).bufreader().map(Box::new)?,
             buf: String::new(),
             ctgs: HashSet::new(),
             line: 0,
