@@ -12,6 +12,7 @@ Utility to demultiplex ONT reads using mapping to Cas9 cut sites to split the re
       - [Either](#Either)
       - [Xor](#Xor)
     - [Output files](#Output-files) 
+      - [Results file](#Results file)
 - [Changes](#Changes)
 
 ## Introduction
@@ -74,8 +75,8 @@ Ont_demult has many command line options for controlling the operation of the pr
 The cut file provides the details of the cut sites and the association between samples nad cut sites.
 The file is a tab separated text file with no header line with the following format
 
-|Chromosome|position|cut site name| sample | circular genome|
-|----------|--------|-------------|--------|----------------|
+| Chromosome | position | cut site name | sample | circular genome |
+|------------|----------|---------------|--------|-----------------|
 
 The last column is an indicator of whether the genome is circular: it should be
 **true / yes / 1** if the genome is circular and **false / no / 0** if the genome is linear.
@@ -157,11 +158,51 @@ The output files produced by ont_demult are a results file with the results of t
 read found in the input PAF file, and the demultiplexed FASTQ files if an 
 input FASTQ file was supplied.
 
+#### Results file
+
 The name of the results file is formed from the output prefix (set with the ``--prefix`` option),
-and the ending ``_res.txt`` (with a ``.gz`` suffix if the ``--compress`` option is set).
+and the ending ``_res.txt`` (with a ``.gz`` suffix if the ``--compress`` option is set).  The results file is a tab separated
+text file with a header line.  The columns are as follows:
+
+1. Read ID
+2. Match status
+3. Cut_site or chromosome if not matched
+4. Sample barcode (if matched)
+5. Strand (+/-)
+6. Location on target of first mapped base
+7. Location on target of last mapped base
+8. Length of read
+9. Number of unmatched bases
+10. Proportion of unmatched bases
+
+After the first 10 columns are 0 or more additional pairs of columns with
+the start and end mapped positions of splits within the read.
+
+The match status column describes the result of the matching.  A value of *Matched* 
+indicates a success full match; all other values indicate that the read was not matched, and 
+provide information as to the reason why this was so.
+Note that column 3 depends on the match status:
+if the read has been matched to a cut site then column 3 shows the matched cut site otherwise it shows the chromosome the read maps to.
+An asterix (*) indicates that a value is not available (for example, column 4 shows an asterix for unmatched reads). 
+The possible values for match status are given in the table below.  Note that some values will only
+be found when using certain selection strategies
+
+| Match status value | Description                                              | Selection strategies |
+|--------------------|----------------------------------------------------------|----------------------|
+| Matched            | Read matched successfully                                | All                  |
+| MatchStart         | Start of read matches a cut site but not the end         | Both                 |
+| MatchEnd           | End of read matches a cut site but not the start         | Both, Start          |
+| MatchBoth          | Both ends match a cut site                               | Xor                  |
+| MisMatch           | The two ends match different cut sites                   | All                  |
+| ExcessUnmatched    | Too many bases in the read are not matched to the target | All                  |
+| Unmatched          | No match to any cutsite                                  | All                  |
+| LowMapQ            | Low MAPQ for read                                        | All                  |
+| Unmapped           | Read did not map                                         | All                  |
+
 
 ## Changes
 
+0.3.2 - Fix bug in Xor selection mode where a read only matching the end site would not be selected
 0.3.1 - Correct headers in results file.  Clean up output.
 0.3.1 - Fix compress option which was not being read correctly.
 0.3.0 - Moved to Clap v3.

@@ -430,7 +430,7 @@ impl PafRead {
                             site: m,
                             inner: cloc,
                         }),
-                        (None, Some(m), Select::Either) => check_match(Match {
+                        (None, Some(m), Select::Either) |  (None, Some(m), Select::Xor) => check_match(Match {
                             site: m,
                             inner: cloc,
                         }),
