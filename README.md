@@ -215,8 +215,8 @@ as a cut site name, or it will cause the files to be overwritten!
 
 ## Changes
 
-0.3.2 - Fix bug in Xor selection mode where a read only matching the end site would not be selected
-0.3.1 - Correct headers in results file.  Clean up output.
-0.3.1 - Fix compress option which was not being read correctly.
-0.3.0 - Moved to Clap v3.
-0.3.0 - Added documentation in this file.
+- 0.3.2 Fix bug in Xor selection mode where a read only matching the end site would not be selected
+- 0.3.1 Correct headers in results file.  Clean up output.
+- 0.3.1 Fix compress option which was not being read correctly.
+- 0.3.0 Moved to Clap v3.
+- 0.3.0 Added documentation in this file.
