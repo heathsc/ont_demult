@@ -18,9 +18,10 @@ Utility to demultiplex ONT reads using mapping to Cas9 cut sites to split the re
 
 ## Introduction
 
-Ont_demult is an ONT demultiplexing utility that takes ONT reads that come from a library prepared by
-cutting the DNA at specific sites using Cas9 where DNA from different samples may be multiplexed
-in the same flowcell, but a cut site is specific to a particular sample.  The basic operation of ont_demult
+Ont_demult is a demultiplexing utility for sequence reads coming from ONT sequencers,  It is intended
+for library preparations that use Cas9 to cut the 
+DNA at specific sites allowing DNA from different samples using different Cas9 guides (and so different cut sites)
+to be multiplexed in the same flowcell.  The basic operation of ont_demult
 is to assign reads to a particular cut site (and therefore to a sample) and, optionally, to
 separate a supplied FASTQ file into cut site specific FASTQ files.  
 
