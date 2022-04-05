@@ -12,7 +12,8 @@ Utility to demultiplex ONT reads using mapping to Cas9 cut sites to split the re
       - [Either](#Either)
       - [Xor](#Xor)
     - [Output files](#Output-files) 
-      - [Results file](#Results file)
+      - [Results file](#Results-file)
+      - [FASTQ files](#FASTQ-files)
 - [Changes](#Changes)
 
 ## Introduction
@@ -199,6 +200,18 @@ be found when using certain selection strategies
 | LowMapQ            | Low MAPQ for read                                        | All                  |
 | Unmapped           | Read did not map                                         | All                  |
 
+#### FASTQ files
+
+If an input FASTQ file is provided (with the ``--fastq`` option) then cut site specific output files are created
+with the FASTQ records of reads matched to each cut site.  The names of the FASTQ files are formed 
+from the output prefix (set with the ``--prefix`` option), the cut site name (from the [cut file](#Cut-file)),
+and the ending ``.fastq`` (with a ``.gz`` suffix if the ``--compress`` option is set).
+
+By default, output files are also created for _unmapped_,
+_unmatched_ and _low MAPQ_ reads.  If these extra files are **not** required then the ``--matched-only`` option
+option will suppress these files and output only the matching reads.  Note that the filenames for these extra
+files will have ``unmapped``, ``unmatched`` and ``low_mapq`` in place of the cut site name - do not use any of these
+as a cut site name, or it will cause the files to be overwritten!
 
 ## Changes
 
