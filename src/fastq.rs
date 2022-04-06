@@ -5,7 +5,7 @@ use std::{
     path::Path,
 };
 
-use compress_io::compress::CompressIo;
+use compress_io::compress::{CompressIo, Writer};
 
 fn gen_err(s: &str, line: usize) -> io::Error {
     Error::new(ErrorKind::Other, format!("{} at line {}", s, line))
@@ -91,7 +91,7 @@ impl FastqFile {
         self.buf[1].trim().len()
     }
 
-    pub fn write_rec(&self, wrt: &mut BufWriter<Box<dyn Write>>) -> io::Result<()> {
+    pub fn write_rec(&self, wrt: &mut BufWriter<Writer>) -> io::Result<()> {
         write!(wrt, "{}{}+\n{}", self.buf[0], self.buf[1], self.buf[2])
     }
 }

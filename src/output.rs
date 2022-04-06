@@ -1,14 +1,14 @@
 use std::collections::HashMap;
-use std::io::{self, Write, BufWriter};
+use std::io::{self, BufWriter};
 
 use compress_io::{
-    compress::CompressIo,
+    compress::{CompressIo, Writer},
     compress_type::CompressType
 };
 
 use crate::params::Param;
 
-pub fn open_output_file<S: AsRef<str>>(name: S, param: &Param) -> io::Result<BufWriter<Box<dyn Write>>> {
+pub fn open_output_file<S: AsRef<str>>(name: S, param: &Param) -> io::Result<BufWriter<Writer>> {
     let fname = format!("{}_{}", param.prefix(), name.as_ref());
     let mut c = CompressIo::new();
     if param.compress() {
@@ -18,10 +18,10 @@ pub fn open_output_file<S: AsRef<str>>(name: S, param: &Param) -> io::Result<Buf
 }
 
 pub struct OutputFiles<'a> {
-    pub unmapped: Option<BufWriter<Box<dyn Write>>>,
-    pub low_mapq: Option<BufWriter<Box<dyn Write>>>,
-    pub unmatched: Option<BufWriter<Box<dyn Write>>>,
-    pub site_hash: HashMap<&'a str, BufWriter<Box<dyn Write>>>,
+    pub unmapped: Option<BufWriter<Writer>>,
+    pub low_mapq: Option<BufWriter<Writer>>,
+    pub unmatched: Option<BufWriter<Writer>>,
+    pub site_hash: HashMap<&'a str, BufWriter<Writer>>,
 }
 
 impl<'a> OutputFiles<'a> {

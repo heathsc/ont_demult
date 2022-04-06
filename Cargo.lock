@@ -68,8 +68,9 @@ dependencies = [
 
 [[package]]
 name = "compress_io"
-version = "0.3.0"
-source = "git+https://github.com/heathsc/compress_io.git#3c583aebc18faacda15b3d0f90d0b5ff6f02bd82"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25dc607312f48ad846db4195252fb080ad9844451d8e73ec3dfc55c263730fe6"
 dependencies = [
  "lazy_static",
  "libc",
@@ -179,7 +180,7 @@ dependencies = [
 
 [[package]]
 name = "ont_demult"
-version = "0.3.2"
+version = "0.3.3"
 dependencies = [
  "anyhow",
  "clap",

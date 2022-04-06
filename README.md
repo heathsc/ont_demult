@@ -216,6 +216,7 @@ as a cut site name, or it will cause the files to be overwritten!
 
 ## Changes
 
+- 0.3.3 Switch to using compress_io from crates.io
 - 0.3.2 Fix bug in Xor selection mode where a read only matching the end site would not be selected
 - 0.3.1 Correct headers in results file.  Clean up output.
 - 0.3.1 Fix compress option which was not being read correctly.
