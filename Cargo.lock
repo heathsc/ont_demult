@@ -68,9 +68,9 @@ dependencies = [
 
 [[package]]
 name = "compress_io"
-version = "0.4.0"
+version = "0.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "25dc607312f48ad846db4195252fb080ad9844451d8e73ec3dfc55c263730fe6"
+checksum = "977885eeed38572c1a85afe94a628d7b26d9d7c02c6abcb233687d11298bb54c"
 dependencies = [
  "lazy_static",
  "libc",
@@ -130,9 +130,9 @@ checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
 name = "libc"
-version = "0.2.121"
+version = "0.2.122"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "efaa7b300f3b5fe8eb6bf21ce3895e1751d9665086af2d64b42f19701015ff4f"
+checksum = "ec647867e2bf0772e28c8bcde4f0d19a9216916e890543b5a03ed8ef27b8f259"
 
 [[package]]
 name = "log"
