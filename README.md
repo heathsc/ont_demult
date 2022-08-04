@@ -1,4 +1,4 @@
-# ont_demult
+# ont_demult [![DOI](https://zenodo.org/badge/380203950.svg)](https://zenodo.org/badge/latestdoi/380203950)
 Utility to demultiplex ONT reads using mapping to Cas9 cut sites to split the reads
 
 - [Introduction](#Introduction)
