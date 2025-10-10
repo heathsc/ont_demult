@@ -2,30 +2,28 @@
 
 use std::collections::HashSet;
 use std::fmt;
-use std::io::{self, BufRead, Error, ErrorKind};
+use std::io::{self, BufRead, Error};
 use std::path::Path;
 use std::rc::Rc;
 
-use compress_io::{
-    compress::CompressIo,
-};
+use compress_io::compress::CompressIo;
 
 use crate::cut_site::{CutSites, Site};
 use crate::params::{Param, Select};
 
 fn parse_usize(s: &str, msg: &str) -> io::Result<usize> {
     s.parse::<usize>()
-        .map_err(|e| Error::new(ErrorKind::Other, format!("Parse error for {}: {}", msg, e)))
+        .map_err(|e| Error::other(format!("Parse error for {}: {}", msg, e)))
 }
 
 // Split line on tabs
 fn split(buf: &str, line: usize) -> io::Result<Vec<&str>> {
     let fd: Vec<_> = buf.trim().split('\t').collect();
     if fd.len() < 12 {
-        Err(Error::new(
-            ErrorKind::Other,
-            format!("Short line (< 12 columns) at line {}", line),
-        ))
+        Err(Error::other(format!(
+            "Short line (< 12 columns) at line {}",
+            line
+        )))
     } else {
         Ok(fd)
     }
@@ -160,10 +158,10 @@ impl PafRecord {
             "+" => Strand::Plus,
             "-" => Strand::Minus,
             _ => {
-                return Err(Error::new(
-                    ErrorKind::Other,
-                    format!("Parse error for strand: unrecognized string '{}'", v[4]),
-                ))
+                return Err(Error::other(format!(
+                    "Parse error for strand: unrecognized string '{}'",
+                    v[4]
+                )))
             }
         };
         let target_name = match ctgs.get(v[5]) {
@@ -175,17 +173,24 @@ impl PafRecord {
             }
         };
         if qend <= qstart {
-            return Err(Error::new(
-                ErrorKind::Other,
-                format!("Parse error for {}, query start >= query end", target_name),
-            ));
+            return Err(Error::other(format!(
+                "Parse error for {}, query start >= query end",
+                target_name
+            )));
         }
         let target_length = parse_usize(v[6], "target length")?;
         let target_start = parse_usize(v[7], "target start")?;
         let target_end = parse_usize(v[8], "target end")?;
         let matching_bases = parse_usize(v[9], "matching bases")?;
         let mapq = parse_usize(v[11], "mapq")?;
-        trace!("PAF record {}: {} qstart: {} qend: {} mapq: {}", v[0], target_name, qstart, qend, mapq);
+        trace!(
+            "PAF record {}: {} qstart: {} qend: {} mapq: {}",
+            v[0],
+            target_name,
+            qstart,
+            qend,
+            mapq
+        );
         Ok(Self {
             qstart,
             qend,
@@ -215,10 +220,10 @@ impl PafRead {
         let qlen = parse_usize(v[1], "query length")?;
         let records = vec![PafRecord::from_str_slice(v, ctgs)?];
         if records[0].qend > qlen {
-            return Err(Error::new(
-                ErrorKind::Other,
-                format!("Parse error for {}, query start > query len", qname),
-            ));
+            return Err(Error::other(format!(
+                "Parse error for {}, query start > query len",
+                qname
+            )));
         }
         Ok(Self {
             qname,
@@ -232,10 +237,10 @@ impl PafRead {
         assert_eq!(self.qname, v[0]);
         let rec = PafRecord::from_str_slice(v, ctgs)?;
         if rec.qend > self.qlen {
-            return Err(Error::new(
-                ErrorKind::Other,
-                format!("Parse error for {}, query start > query len", self.qname),
-            ));
+            return Err(Error::other(format!(
+                "Parse error for {}, query start > query len",
+                self.qname
+            )));
         }
         self.records.push(rec);
         Ok(())
@@ -255,7 +260,7 @@ impl PafRead {
     // Strategy - look for mapping records that can be assembled to cover more or less
     // the whole read where at least 1 record has a mapq > threshold and the others are on
     // the same contig strand
-    pub fn find_site<'a, 'b>(&'a self, cut_sites: &'b CutSites, param: &Param) -> Option<FindMatch<'b>> {
+    pub fn find_site<'b>(&self, cut_sites: &'b CutSites, param: &Param) -> Option<FindMatch<'b>> {
         debug!("Checking matches for read {}", self.qname);
         let threshold = param.mapq_thresh();
         let max_dist = param.max_distance();
@@ -266,10 +271,17 @@ impl PafRead {
         self.records
             .iter()
             .filter(|r| r.mapq >= threshold && self.qlen < r.target_length + 150)
-            .max_by_key(|r| r.matching_bases).and_then(|r| {
+            .max_by_key(|r| r.matching_bases)
+            .and_then(|r| {
                 trace!(
                     "Found longest match: query: {} {} {} {} target: {} {} {}",
-                    self.qlen, r.qstart, r.qend, r.strand, r.target_name, r.target_start, r.target_end
+                    self.qlen,
+                    r.qstart,
+                    r.qend,
+                    r.strand,
+                    r.target_name,
+                    r.target_start,
+                    r.target_end
                 );
 
                 let strand = r.strand;
@@ -289,7 +301,12 @@ impl PafRead {
                 let s = &recs[0];
                 trace!(
                     "First record in read - query: {} {} {} {} target: {} {}",
-                    self.qlen, s.qstart, s.qend, s.strand, s.target_start, s.target_end
+                    self.qlen,
+                    s.qstart,
+                    s.qend,
+                    s.strand,
+                    s.target_start,
+                    s.target_end
                 );
 
                 let mut skip = false;
@@ -298,7 +315,9 @@ impl PafRead {
                     if s[0].qend >= s[1].qstart {
                         trace!(
                             "Read {} mapping to {} overlaps by {} bases - discarded",
-                            self.qname, r.target_name, s[0].qend - s[1].qstart + 1
+                            self.qname,
+                            r.target_name,
+                            s[0].qend - s[1].qstart + 1
                         );
                         skip = true;
                         break;
@@ -321,14 +340,7 @@ impl PafRead {
                     // Increase starting position by margin to allow for 'overrun'
                     let (start, spos) = match s.strand {
                         Strand::Plus => (s.target_start, s.target_start + margin),
-                        Strand::Minus => (
-                            s.target_end,
-                            if margin <= s.target_end {
-                                s.target_end - margin
-                            } else {
-                                0
-                            },
-                        ),
+                        Strand::Minus => (s.target_end, s.target_end.saturating_sub(margin)),
                     };
                     trace!("Using starting position {}", spos);
 
@@ -338,14 +350,7 @@ impl PafRead {
                     // Increase starting position and reduce ending position by margin to allow for 'overrun'
 
                     let (end, send) = match s1.strand {
-                        Strand::Plus => (
-                            s1.target_end,
-                            if margin <= s1.target_end {
-                                s1.target_end - margin
-                            } else {
-                                0
-                            },
-                        ),
+                        Strand::Plus => (s1.target_end, s1.target_end.saturating_sub(margin)),
                         Strand::Minus => (s1.target_start, s1.target_start + margin),
                     };
 
@@ -430,10 +435,12 @@ impl PafRead {
                             site: m,
                             inner: cloc,
                         }),
-                        (None, Some(m), Select::Either) |  (None, Some(m), Select::Xor) => check_match(Match {
-                            site: m,
-                            inner: cloc,
-                        }),
+                        (None, Some(m), Select::Either) | (None, Some(m), Select::Xor) => {
+                            check_match(Match {
+                                site: m,
+                                inner: cloc,
+                            })
+                        }
                         (None, Some(_), _) => FindMatch::MatchEnd(Location {
                             contig: s.target_name.clone(),
                             inner: cloc,

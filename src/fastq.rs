@@ -1,14 +1,14 @@
 // Read and parse FASTQ file
 
 use std::{
-    io::{self, BufRead, BufWriter, Error, ErrorKind, Write},
+    io::{self, BufRead, BufWriter, Error, Write},
     path::Path,
 };
 
 use compress_io::compress::{CompressIo, Writer};
 
 fn gen_err(s: &str, line: usize) -> io::Error {
-    Error::new(ErrorKind::Other, format!("{} at line {}", s, line))
+    Error::other(format!("{} at line {}", s, line))
 }
 
 pub struct FastqFile {

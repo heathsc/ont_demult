@@ -1,6 +1,6 @@
 use anyhow::Context;
 
-use clap::{Command, Arg, ArgMatches, crate_version};
+use clap::{crate_version, Arg, ArgMatches, Command};
 
 use super::*;
 use crate::cut_site::read_cut_file;
@@ -13,7 +13,7 @@ fn command_line() -> ArgMatches {
            Arg::new("loglevel")
               .short('l').long("loglevel")
               .takes_value(true).value_name("LOGLEVEL")
-              .possible_values(&["none", "error", "warn", "info", "debug", "trace"])
+              .possible_values(["none", "error", "warn", "info", "debug", "trace"])
               .ignore_case(true).default_value("info")
               .help("Set log level")
        )
@@ -89,22 +89,22 @@ fn command_line() -> ArgMatches {
 }
 
 pub fn process_cli() -> anyhow::Result<Param> {
-//    let yaml = load_yaml!("cli/cli.yml");
-//    let app = App::from_yaml(yaml).version(crate_version!());
+    //    let yaml = load_yaml!("cli/cli.yml");
+    //    let app = App::from_yaml(yaml).version(crate_version!());
 
     let m = command_line();
 
     // Setup logging
-    let _ = init_log(&m);
+    init_log(&m);
 
     // Build param structure from options
     let mut pb = ParamBuilder::new();
 
-    if let Some(file) =  m.value_of("fastq") {
+    if let Some(file) = m.value_of("fastq") {
         pb.fastq_file(file);
     }
 
-    if let Some(file) =  m.value_of("paf_file") {
+    if let Some(file) = m.value_of("paf_file") {
         pb.paf_file(file);
     }
 
@@ -114,14 +114,28 @@ pub fn process_cli() -> anyhow::Result<Param> {
     }
 
     pb.prefix(m.value_of("prefix").unwrap())
-       .compress(m.is_present("compress"))
-       .matched_only(m.is_present("matched_only"))
-       .mapq_thresh(m.value_of_t("mapq_threshold").with_context(|| "Invalid argument to mapq_threshold option")?)
-       .max_distance(m.value_of_t("max_distance").with_context(|| "Invalid argument to map_distance option")?)
-       .max_unmatched(m.value_of_t("max_unmatched").with_context(|| "Invalid argument to max_unmatched option")?)
-       .margin(m.value_of_t("margin").with_context(|| "Invalid argument to margin option")?)
-       .select(m.value_of_t("select").with_context(|| "Invalid argument to select option")?)
-       ;
+        .compress(m.is_present("compress"))
+        .matched_only(m.is_present("matched_only"))
+        .mapq_thresh(
+            m.value_of_t("mapq_threshold")
+                .with_context(|| "Invalid argument to mapq_threshold option")?,
+        )
+        .max_distance(
+            m.value_of_t("max_distance")
+                .with_context(|| "Invalid argument to map_distance option")?,
+        )
+        .max_unmatched(
+            m.value_of_t("max_unmatched")
+                .with_context(|| "Invalid argument to max_unmatched option")?,
+        )
+        .margin(
+            m.value_of_t("margin")
+                .with_context(|| "Invalid argument to margin option")?,
+        )
+        .select(
+            m.value_of_t("select")
+                .with_context(|| "Invalid argument to select option")?,
+        );
 
-   Ok(pb.build())
+    Ok(pb.build())
 }
