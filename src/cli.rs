@@ -62,26 +62,27 @@ fn command_line() -> ArgMatches {
            Arg::new("cut_file")
               .short('f').long("cut-file")
               .value_name("FILE")
-            .value_parser(value_parser!(PathBuf))
+              .value_parser(value_parser!(PathBuf))
               .help("File with details of cut sites"),
        )
        .arg(
            Arg::new("fastq")
               .short('F').long("fastq")
               .value_name("FILE")
-               .value_parser(value_parser!(String))
+              .value_parser(value_parser!(String))
               .help("Input FASTQ file for demultiplexing"),
        )
        .arg(
            Arg::new("matched_only")
               .short('M').long("matched-only")
+              .action(ArgAction::SetTrue)
               .help("Only output matched FASTQ records [default: Output all FASTQ records]"),
        )
        .arg(
            Arg::new("prefix")
               .short('p').long("prefix")
               .value_name("PREFIX")
-            .value_parser(value_parser!(String))
+              .value_parser(value_parser!(String))
               .default_value(DEFAULT_PREFIX)
               .help("Prefix for file names"),
        )
