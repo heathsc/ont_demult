@@ -53,7 +53,7 @@ impl<'a> fmt::Display for MapResult<'a> {
             Self::MatchStart(l) => write!(f, "MatchStart\t{}", l),
             Self::MatchEnd(l) => write!(f, "MatchEnd\t{}", l),
             Self::MisMatch(l) => write!(f, "MisMatch\t{}", l),
-            Self::Matched(m) => write!(f, "Matched\t{}", m),
+            Self::Matched(m) => write!(f, "Matched({})\t{}", m.match_type(), m),
             Self::ExcessUnmatched(m) => write!(f, "ExcessUnmatched\t{}", m),
         }
     }
@@ -146,14 +146,14 @@ fn main() -> anyhow::Result<()> {
                 &unmapped
             });
 
-            if let Some(wrt) = match mr {
-                MapResult::Unmapped(_) => ofiles.unmapped.as_mut(),
-                MapResult::LowMapq(_) => ofiles.low_mapq.as_mut(),
-                MapResult::Matched(m) => ofiles.site_hash.get_mut(m.site.name.as_str()),
-                _ => ofiles.unmatched.as_mut(),
+            if let (Some(wrt), mt) = match mr {
+                MapResult::Unmapped(_) => (ofiles.unmapped.as_mut(), None),
+                MapResult::LowMapq(_) => (ofiles.low_mapq.as_mut(), None),
+                MapResult::Matched(m) => (ofiles.site_hash.get_mut(m.site.name.as_str()), Some(m.match_type())),
+                _ => (ofiles.unmatched.as_mut(), None),
             } {
                 fq_file
-                    .write_rec(wrt)
+                    .write_rec(wrt, mt)
                     .with_context(|| "Error writing to fastq output")?
             }
         }

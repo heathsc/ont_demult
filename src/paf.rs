@@ -58,19 +58,48 @@ impl fmt::Display for Strand {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+pub enum MatchType {
+    Both,
+    Start,
+    End
+}
+
+impl fmt::Display for MatchType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Both => "Both",
+                Self::Start => "Start",
+                Self::End => "End",
+            }
+        )
+    }
+}
+
+
 #[derive(Debug)]
 pub struct Match<'a> {
     pub site: &'a Site,
     inner: CommonLoc,
+    match_type: MatchType, // Under which criteria did it match
 }
 
 impl<'a> fmt::Display for Match<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             f,
-            "{}\t{}\t{}",
+            "{}\t{}\t{}\t",
             self.site.name, self.site.barcode, self.inner
         )
+    }
+} 
+
+impl Match<'_> {
+    pub fn match_type(&self) -> MatchType {
+        self.match_type
     }
 }
 
@@ -132,6 +161,7 @@ pub enum FindMatch<'a> {
     Location(Location),
 }
 
+/* 
 impl<'a> fmt::Display for FindMatch<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -143,7 +173,7 @@ impl<'a> fmt::Display for FindMatch<'a> {
             | Self::MatchEnd(l) => write!(f, "{}", l),
         }
     }
-}
+} */
 
 pub struct PafRecord {
     qstart: usize,
@@ -419,6 +449,7 @@ impl PafRead {
                                     check_match(Match {
                                         site: m1,
                                         inner: cloc,
+                                        match_type: MatchType::Both,
                                     })
                                 }
                             } else {
@@ -435,11 +466,13 @@ impl PafRead {
                         (Some(m), None, _) => check_match(Match {
                             site: m,
                             inner: cloc,
+                            match_type: MatchType::Start,
                         }),
                         (None, Some(m), Strategy::Either) | (None, Some(m), Strategy::Xor) => {
                             check_match(Match {
                                 site: m,
                                 inner: cloc,
+                                match_type: MatchType::End,
                             })
                         }
                         (None, Some(_), _) => FindMatch::MatchEnd(Location {

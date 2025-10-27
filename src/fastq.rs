@@ -7,6 +7,8 @@ use std::{
 
 use compress_io::compress::{CompressIo, Writer};
 
+use crate::paf::MatchType;
+
 fn gen_err(s: &str, line: usize) -> io::Error {
     Error::other(format!("{} at line {}", s, line))
 }
@@ -91,7 +93,12 @@ impl FastqFile {
         self.buf[1].trim().len()
     }
 
-    pub fn write_rec(&self, wrt: &mut BufWriter<Writer>) -> io::Result<()> {
-        write!(wrt, "{}{}+\n{}", self.buf[0], self.buf[1], self.buf[2])
+    pub fn write_rec(&self, wrt: &mut BufWriter<Writer>, mt: Option<MatchType>) -> io::Result<()> {
+        let s = self.buf[0].split(' ').next().unwrap();
+        write!(wrt, "{s}")?;
+        if let Some(match_type) = mt {
+            write!(wrt, " YS:Z:{match_type}")?;
+        } 
+        write!(wrt, "\n{}+\n{}", self.buf[1], self.buf[2])
     }
 }
