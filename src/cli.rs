@@ -35,7 +35,7 @@ fn command_line() -> ArgMatches {
        .arg(
            Arg::new("max_distance")
               .short('m').long("max-distance")
-              .takes_value(true).value_name("INT").default_value("100")
+              .takes_value(true).value_name("INT").default_value("50")
               .help("Maximum distance allowed between cut-site and starting read position"),
        )
        .arg(
@@ -47,7 +47,7 @@ fn command_line() -> ArgMatches {
        .arg(
            Arg::new("margin")
               .short('x').long("margin")
-              .takes_value(true).value_name("INT").default_value("10")
+              .takes_value(true).value_name("INT").default_value("0")
               .help("Extra distance at start of reads on 'other side' of cut site"),
        )
        .next_help_heading("Input/Output")
