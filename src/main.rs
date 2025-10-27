@@ -17,6 +17,7 @@ mod fastq;
 pub mod log_level;
 mod output;
 mod paf;
+mod strategy;
 pub mod params;
 
 use fastq::*;

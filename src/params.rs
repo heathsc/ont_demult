@@ -1,31 +1,5 @@
-use super::*;
+use super::{strategy::Strategy, DEFAULT_PREFIX};
 use crate::cut_site::CutSites;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum Select {
-    Start,
-    Both,
-    Either,
-    Xor,
-}
-
-impl Default for Select {
-    fn default() -> Self { Self::Start }
-}
-
-impl std::str::FromStr for Select {
-    type Err = anyhow::Error;
-    fn from_str(s: &str) -> anyhow::Result<Self> {
-        let s = s.to_ascii_lowercase();
-        match s.as_str() {
-            "start" => Ok(Self::Start),
-            "both" => Ok(Self::Both),
-            "either" => Ok(Self::Either),
-            "xor" => Ok(Self::Xor),
-            _ => Err(anyhow!("Invalid Select option {}", s)),
-        }
-    }
-}
 
 #[derive(Debug, Default)]
 pub struct ParamBuilder {
@@ -35,8 +9,8 @@ pub struct ParamBuilder {
     prefix: Option<String>,
     compress: bool,
     matched_only: bool,
-    select: Select,
-    mapq_thresh: usize,
+    select: Strategy,
+    mapq_thresh: u8,
     max_distance: usize,
     max_unmatched: usize,
     margin: usize,
@@ -76,7 +50,7 @@ impl ParamBuilder {
         self
     }
 
-    pub fn select(&mut self, select: Select) -> &mut Self {
+    pub fn select(&mut self, select: Strategy) -> &mut Self {
         self.select = select;
         self
     }
@@ -96,7 +70,7 @@ impl ParamBuilder {
         self
     }
 
-    pub fn mapq_thresh(&mut self, x: usize) -> &mut Self {
+    pub fn mapq_thresh(&mut self, x: u8) -> &mut Self {
         self.mapq_thresh = x;
         self
     }
@@ -126,10 +100,8 @@ pub struct Param {
     prefix: String,              // Output prefix (if None, use)
     compress: bool,              // Compress output
     matched_only: bool,          // Only output matched fastq records when demultiplexing
-    select: Select,              // Selection strategy
-//    compress_suffix: Option<String>, // Suffix for compressed files (implies --compress)
-//    compress_command: Option<String>, // Command (with arguments) for compression (implies --compress)
-    mapq_thresh: usize,               // Minimum threshold for MAPQ
+    select: Strategy,              // Selection strategy
+    mapq_thresh: u8,               // Minimum threshold for MAPQ
     max_distance: usize,              // Maximum distance allowed from nearest cut site
     max_unmatched: usize, // Maximum proportion number of unmatched bases allowed per read
     margin: usize,        // Extra margin allowed when matching on 'wrong side' of cut site
@@ -142,7 +114,7 @@ impl Param {
     pub fn fastq_file(&self) -> Option<&str> {
         self.fastq_file.as_deref()
     }
-    pub fn select(&self) -> Select {
+    pub fn select(&self) -> Strategy {
         self.select
     }
     pub fn cut_sites(&self) -> Option<&CutSites> {
@@ -157,7 +129,7 @@ impl Param {
     pub fn matched_only(&self) -> bool {
         self.matched_only
     }
-    pub fn mapq_thresh(&self) -> usize {
+    pub fn mapq_thresh(&self) -> u8 {
         self.mapq_thresh
     }
     pub fn max_distance(&self) -> usize {

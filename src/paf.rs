@@ -1,19 +1,29 @@
 // Read and parse Paf file
 
-use std::collections::HashSet;
-use std::fmt;
-use std::io::{self, BufRead, Error};
-use std::path::Path;
-use std::rc::Rc;
+use std::{
+    collections::HashSet,
+    fmt,
+    io::{self, BufRead, Error},
+    path::Path,
+    rc::Rc,
+    str::FromStr,
+};
 
 use compress_io::compress::CompressIo;
 
-use crate::cut_site::{CutSites, Site};
-use crate::params::{Param, Select};
+use crate::{
+    cut_site::{CutSites, Site},
+    params::Param,
+    strategy::Strategy,
+};
 
-fn parse_usize(s: &str, msg: &str) -> io::Result<usize> {
-    s.parse::<usize>()
-        .map_err(|e| Error::other(format!("Parse error for {}: {}", msg, e)))
+fn parse_num<T>(s: &str, msg: &str) -> io::Result<T>
+where
+    T: FromStr,
+    <T as FromStr>::Err: fmt::Debug,
+{
+    s.parse::<T>()
+        .map_err(|e| Error::other(format!("Parse error for {msg}: {e:?}")))
 }
 
 // Split line on tabs
@@ -144,7 +154,7 @@ pub struct PafRecord {
     target_start: usize,
     target_end: usize,
     matching_bases: usize,
-    mapq: usize,
+    mapq: u8,
 }
 
 impl PafRecord {
@@ -152,8 +162,8 @@ impl PafRecord {
     // ctgs stores the contigs seen (so we don't have to keep allocating strings to store the name)
     fn from_str_slice(v: &[&str], ctgs: &mut HashSet<Rc<str>>) -> io::Result<Self> {
         assert!(v.len() >= 12);
-        let qstart = parse_usize(v[2], "query start")?;
-        let qend = parse_usize(v[3], "query end")?;
+        let qstart = parse_num(v[2], "query start")?;
+        let qend = parse_num(v[3], "query end")?;
         let strand = match v[4] {
             "+" => Strand::Plus,
             "-" => Strand::Minus,
@@ -161,7 +171,7 @@ impl PafRecord {
                 return Err(Error::other(format!(
                     "Parse error for strand: unrecognized string '{}'",
                     v[4]
-                )))
+                )));
             }
         };
         let target_name = match ctgs.get(v[5]) {
@@ -178,18 +188,14 @@ impl PafRecord {
                 target_name
             )));
         }
-        let target_length = parse_usize(v[6], "target length")?;
-        let target_start = parse_usize(v[7], "target start")?;
-        let target_end = parse_usize(v[8], "target end")?;
-        let matching_bases = parse_usize(v[9], "matching bases")?;
-        let mapq = parse_usize(v[11], "mapq")?;
+        let target_length = parse_num(v[6], "target length")?;
+        let target_start = parse_num(v[7], "target start")?;
+        let target_end = parse_num(v[8], "target end")?;
+        let matching_bases = parse_num(v[9], "matching bases")?;
+        let mapq = parse_num(v[11], "mapq")?;
         trace!(
             "PAF record {}: {} qstart: {} qend: {} mapq: {}",
-            v[0],
-            target_name,
-            qstart,
-            qend,
-            mapq
+            v[0], target_name, qstart, qend, mapq
         );
         Ok(Self {
             qstart,
@@ -217,7 +223,7 @@ impl PafRead {
     fn from_str_slice(v: &[&str], ctgs: &mut HashSet<Rc<str>>) -> io::Result<Self> {
         assert!(v.len() >= 12);
         let qname = v[0].to_owned();
-        let qlen = parse_usize(v[1], "query length")?;
+        let qlen = parse_num(v[1], "query length")?;
         let records = vec![PafRecord::from_str_slice(v, ctgs)?];
         if records[0].qend > qlen {
             return Err(Error::other(format!(
@@ -253,7 +259,7 @@ impl PafRead {
         self.records.iter().all(|r| r.target_name.as_ref() != "*")
     }
     // Check if read has one mapping with mapq >= threshold
-    pub fn is_unique(&self, threshold: usize) -> bool {
+    pub fn is_unique(&self, threshold: u8) -> bool {
         self.records.iter().any(|r| r.mapq >= threshold)
     }
     // Check for match to cut-site
@@ -301,12 +307,7 @@ impl PafRead {
                 let s = &recs[0];
                 trace!(
                     "First record in read - query: {} {} {} {} target: {} {}",
-                    self.qlen,
-                    s.qstart,
-                    s.qend,
-                    s.strand,
-                    s.target_start,
-                    s.target_end
+                    self.qlen, s.qstart, s.qend, s.strand, s.target_start, s.target_end
                 );
 
                 let mut skip = false;
@@ -409,7 +410,7 @@ impl PafRead {
                     Some(match (start_site, end_site, select) {
                         (Some(m1), Some(m2), sel) => {
                             if m1 == m2 {
-                                if sel == Select::Xor {
+                                if sel == Strategy::Xor {
                                     FindMatch::MatchBoth(Location {
                                         contig: s.target_name.clone(),
                                         inner: cloc,
@@ -427,7 +428,7 @@ impl PafRead {
                                 })
                             }
                         }
-                        (Some(_), None, Select::Both) => FindMatch::MatchStart(Location {
+                        (Some(_), None, Strategy::Both) => FindMatch::MatchStart(Location {
                             contig: s.target_name.clone(),
                             inner: cloc,
                         }),
@@ -435,7 +436,7 @@ impl PafRead {
                             site: m,
                             inner: cloc,
                         }),
-                        (None, Some(m), Select::Either) | (None, Some(m), Select::Xor) => {
+                        (None, Some(m), Strategy::Either) | (None, Some(m), Strategy::Xor) => {
                             check_match(Match {
                                 site: m,
                                 inner: cloc,

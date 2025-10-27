@@ -1,38 +1,57 @@
 use std::fmt;
-use std::str::FromStr;
 
-use clap::ArgMatches;
+use clap::{builder::PossibleValue, ArgMatches, ValueEnum};
 
+/// LogLevel
+///
+/// Represents minimum level of messages that will be logged
+///
 #[derive(Debug, Clone, Copy)]
-pub struct LogLevel {
-    pub level: usize,
+pub enum LogLevel {
+    Error = 0,
+    Warn,
+    Info,
+    Debug,
+    Trace,
+    None,
 }
 
-impl FromStr for LogLevel {
-    type Err = &'static str;
+impl ValueEnum for LogLevel {
+    fn value_variants<'a>() -> &'a [Self] {
+        &[
+            Self::Error,
+            Self::Warn,
+            Self::Info,
+            Self::Debug,
+            Self::Trace,
+            Self::None,
+        ]
+    }
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "error" => Ok(LogLevel { level: 0 }),
-            "warn" => Ok(LogLevel { level: 1 }),
-            "info" => Ok(LogLevel { level: 2 }),
-            "debug" => Ok(LogLevel { level: 3 }),
-            "trace" => Ok(LogLevel { level: 4 }),
-            "none" => Ok(LogLevel { level: 5 }),
-            _ => Err("no match"),
+    fn to_possible_value(&self) -> Option<PossibleValue> {
+        match self {
+            Self::Error => Some(PossibleValue::new("error")),
+            Self::Warn => Some(PossibleValue::new("warn")),
+            Self::Info => Some(PossibleValue::new("info")),
+            Self::Debug => Some(PossibleValue::new("debug")),
+            Self::Trace => Some(PossibleValue::new("trace")),
+            Self::None => Some(PossibleValue::new("none")),
         }
     }
 }
 
 impl LogLevel {
+    fn level(&self) -> usize {
+        *self as usize
+    }
     pub fn is_none(&self) -> bool {
-        self.level > 4
+        self.level() > 4
     }
     pub fn get_level(&self) -> usize {
-        if self.level > 4 {
+        if self.level() > 4 {
             0
         } else {
-            self.level
+            self.level()
         }
     }
 }
@@ -40,19 +59,24 @@ impl LogLevel {
 impl fmt::Display for LogLevel {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let level_str = ["error", "warn", "info", "debug", "trace", "none"];
-        if self.level < 6 {
-            write!(f, "{}", level_str[self.level])
+        if self.level() < 6 {
+            write!(f, "{}", level_str[self.level()])
         } else {
             write!(f, "unknown")
         }
     }
 }
 
+/// Initialize logging from command line arguments
 pub fn init_log(m: &ArgMatches) {
-    let verbose: LogLevel = m.value_of_t("loglevel")
-        .unwrap_or_else(|_| LogLevel::from_str("info").expect("Could not set loglevel info"));
+    let verbose = m
+        .get_one::<LogLevel>("loglevel")
+        .copied()
+        .expect("Missing default log level");
+    let quiet = verbose.is_none();
 
     stderrlog::new()
+        .quiet(quiet)
         .verbosity(verbose.get_level())
         .init()
         .unwrap();
